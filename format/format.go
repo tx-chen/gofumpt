@@ -163,11 +163,24 @@ func File(fset *token.FileSet, file *ast.File, opts Options) {
 
 // Multiline nodes which could easily fit on a single line under this many bytes
 // may be collapsed onto a single line.
-const shortLineLimit = 60
+var shortLineLimit = 100
 
 // Single-line nodes which take over this many bytes, and could easily be split
 // into two lines of at least its minSplitFactor factor, may be split.
-const longLineLimit = 100
+var longLineLimit = 160
+
+func init() {
+	if v, ok := os.LookupEnv(`GOFUMPT_LIMIT_SHORT_LINE`); ok {
+		if vv, err := strconv.Atoi(v); err == nil {
+			shortLineLimit = vv
+		}
+	}
+	if v, ok := os.LookupEnv(`GOFUMPT_LIMIT_LONG_LINE`); ok {
+		if vv, err := strconv.Atoi(v); err == nil {
+			longLineLimit = vv
+		}
+	}
+}
 
 var rxOctalInteger = regexp.MustCompile(`\A0[0-7_]+\z`)
 
@@ -846,7 +859,7 @@ func (f *fumpter) splitLongLine(c *astutil.Cursor) {
 	// If the line ends past the long line limit,
 	// and both splits are estimated to take at least minSplitFactor of the limit,
 	// then split the line.
-	minSplitLength := int(f.minSplitFactor * longLineLimit)
+	minSplitLength := int(f.minSplitFactor * float64(longLineLimit))
 	if endCol > longLineLimit &&
 		firstLength >= minSplitLength && secondLength >= minSplitLength {
 		f.addNewline(newlinePos)
